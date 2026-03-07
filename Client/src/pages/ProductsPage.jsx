@@ -4,7 +4,6 @@ import api from "../api/client";
 import ProductCard from "../components/ProductCard";
 import ProductDetailsModal from "../components/ProductDetailsModal";
 import { useAuth } from "../context/AuthContext";
-import catalog from "../data/catalog";
 import { addDemoOrder } from "../utils/demoOrders";
 
 export default function ProductsPage() {
@@ -38,11 +37,7 @@ export default function ProductsPage() {
   }, [searchParams]);
 
   const mergedProducts = useMemo(() => {
-    const mappedBackend = backendProducts.map((item) => ({ ...item, source: "api" }));
-    const mappedDemo = catalog.map((item) => ({ ...item, source: "demo" }));
-    const all = [...mappedBackend, ...mappedDemo];
-
-    return all.filter((item) => {
+    return backendProducts.filter((item) => {
       const productName = (item.title || item.name || "").toLowerCase();
       const productCategory = (item.category || "").toLowerCase();
       const qMatch = productName.includes(query.toLowerCase());
@@ -52,7 +47,7 @@ export default function ProductsPage() {
   }, [backendProducts, query, selectedCategory]);
 
   const handleBuy = async (product) => {
-    if (!isAuthenticated || product.source === "demo" || !product._id) {
+    if (!isAuthenticated || !product._id) {
       addDemoOrder({ product, user });
       setMessage(`Order placed for ${product.title || product.name}. ${isAuthenticated ? "" : "Please login to track orders on your account."}`);
       return;

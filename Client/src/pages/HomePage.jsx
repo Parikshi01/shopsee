@@ -1,25 +1,48 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import catalog from "../data/catalog";
+import api from "../api/client";
 import ProductCard from "../components/ProductCard";
 import ProductDetailsModal from "../components/ProductDetailsModal";
 import { useAuth } from "../context/AuthContext";
 import { addDemoOrder } from "../utils/demoOrders";
 
 export default function HomePage() {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [message, setMessage] = useState("");
   const [selected, setSelected] = useState(null);
   const { isAuthenticated, user } = useAuth();
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const { data } = await api.get("/products");
+        setProducts(Array.isArray(data) ? data : []);
+      } catch {
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
   const deals = useMemo(
-    () => catalog.filter((item) => item.title.toLowerCase().includes(query.toLowerCase())).slice(0, 6),
-    [query]
+    () =>
+      products
+        .filter((item) => (item.title || item.name || "").toLowerCase().includes(query.toLowerCase()))
+        .slice(0, 6),
+    [products, query]
   );
 
   const handleBuy = (product) => {
     addDemoOrder({ product, user });
     setMessage(`Order placed for ${product.title || product.name}. ${isAuthenticated ? "" : "Login to track this order on your account."}`);
   };
+
+  if (loading) return <div className="loader">Loading products...</div>;
 
   return (
     <section>
@@ -53,7 +76,7 @@ export default function HomePage() {
 
         <div className="deals-grid">
           {deals.map((item) => (
-            <ProductCard product={item} onBuy={handleBuy} onView={setSelected} key={item.id} />
+            <ProductCard product={item} onBuy={handleBuy} onView={setSelected} key={item._id || item.id} />
           ))}
         </div>
         {message && <p className="status">{message}</p>}
